@@ -6,6 +6,7 @@ import { RecordPaymentModal } from '../components/RecordPaymentModal';
 import { ChaseReminderModal } from '../components/ChaseReminderModal';
 import { NotifyCustomerModal } from '../components/NotifyCustomerModal';
 import { RazorpayModal } from '../components/RazorpayModal';
+import { StripeModal } from '../components/StripeModal';
 import { CheckCircle2, XCircle, Send, CreditCard, AlertTriangle, Mail, Zap } from 'lucide-react';
 
 export function InvoiceDetail() {
@@ -18,6 +19,7 @@ export function InvoiceDetail() {
   const [loading, setLoading] = useState(true);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [razorpayModalOpen, setRazorpayModalOpen] = useState(false);
+  const [stripeModalOpen, setStripeModalOpen] = useState(false);
   const [chaseModalOpen, setChaseModalOpen] = useState(false);
   const [notifyModalOpen, setNotifyModalOpen] = useState(false);
 
@@ -114,12 +116,21 @@ export function InvoiceDetail() {
         {invoice.status !== 'paid' && invoice.status !== 'cancelled' && (
           <div className="flex items-center gap-2">
             <button
+              onClick={() => setStripeModalOpen(true)}
+              className="flex items-center gap-1.5 px-4 py-2 bg-[#635bff] hover:bg-[#5349e0] text-white rounded-lg text-xs font-bold shadow-xs transition-colors"
+              title="Pay invoice online using Stripe (Credit/Debit Card, Zero PAN required)"
+            >
+              <CreditCard className="w-4 h-4" />
+              <span>Pay Online (Stripe)</span>
+            </button>
+
+            <button
               onClick={() => setRazorpayModalOpen(true)}
-              className="flex items-center gap-1.5 px-4 py-2 bg-[#0c2340] hover:bg-[#14325a] text-white rounded-lg text-xs font-bold shadow-xs transition-colors border border-[#3395ff]/30"
-              title="Pay invoice online using Razorpay (UPI, Credit/Debit Card, NetBanking)"
+              className="flex items-center gap-1.5 px-3 py-2 bg-[#0c2340] hover:bg-[#14325a] text-white rounded-lg text-xs font-bold shadow-xs transition-colors border border-[#3395ff]/30"
+              title="Pay invoice online using Razorpay"
             >
               <Zap className="w-4 h-4 text-[#3395ff]" />
-              <span>Pay Online (Razorpay)</span>
+              <span>Razorpay</span>
             </button>
 
             {user?.role !== 'customer' && (
@@ -148,6 +159,16 @@ export function InvoiceDetail() {
           onClose={() => setPaymentModalOpen(false)}
           invoice={invoice}
           onPaymentRecorded={loadInvoice}
+        />
+      )}
+
+      {/* Stripe Online Payment Modal */}
+      {stripeModalOpen && (
+        <StripeModal
+          isOpen={stripeModalOpen}
+          onClose={() => setStripeModalOpen(false)}
+          invoice={invoice}
+          onSuccess={loadInvoice}
         />
       )}
 

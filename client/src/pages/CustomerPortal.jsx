@@ -6,6 +6,7 @@ import { RecordPaymentModal } from '../components/RecordPaymentModal';
 import { ViewNotificationModal } from '../components/ViewNotificationModal';
 import { CustomerSubscribeModal } from '../components/CustomerSubscribeModal';
 import { RazorpayModal } from '../components/RazorpayModal';
+import { StripeModal } from '../components/StripeModal';
 import {
   Repeat,
   FileText,
@@ -62,6 +63,7 @@ export function CustomerPortal() {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [stripeInvoice, setStripeInvoice] = useState(null);
   const [activeNotification, setActiveNotification] = useState(null);
   const [subscribeModalOpen, setSubscribeModalOpen] = useState(false);
 
@@ -1093,7 +1095,7 @@ export function CustomerPortal() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-{filteredInvoices.length === 0 ? (
+                  {filteredInvoices.length === 0 ? (
                     <tr>
                       <td colSpan={8} className="py-8 text-center text-slate-400">
                         No invoices match this filter.
@@ -1137,12 +1139,23 @@ export function CustomerPortal() {
                           <td className="py-3.5 px-4 text-right">
                             <div className="flex items-center justify-end gap-2">
                               {!isPaid && (
-                                <button
-                                  onClick={() => setPaymentInvoice(inv)}
-                                  className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold shadow-xs transition-colors"
-                                >
-                                  Pay Now
-                                </button>
+                                <div className="flex items-center gap-1.5">
+                                  <button
+                                    onClick={() => setStripeInvoice(inv)}
+                                    className="px-2.5 py-1 bg-[#635bff] hover:bg-[#5349e0] text-white rounded-lg text-[11px] font-bold shadow-xs transition-colors flex items-center gap-1"
+                                    title="Pay online with Stripe (Zero PAN required)"
+                                  >
+                                    <CreditCard className="w-3 h-3" />
+                                    <span>Pay (Stripe)</span>
+                                  </button>
+                                  <button
+                                    onClick={() => setPaymentInvoice(inv)}
+                                    className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[11px] font-bold transition-colors"
+                                    title="Pay with Razorpay"
+                                  >
+                                    <span>Razorpay</span>
+                                  </button>
+                                </div>
                               )}
 
                               <button
@@ -1782,6 +1795,15 @@ export function CustomerPortal() {
         </div>
       )}
 
+      {/* Stripe Online Payment Modal */}
+      {stripeInvoice && (
+        <StripeModal
+          isOpen={!!stripeInvoice}
+          onClose={() => setStripeInvoice(null)}
+          invoice={stripeInvoice}
+          onSuccess={loadData}
+        />
+      )}
       {/* Razorpay Online Payment Modal */}
       {paymentInvoice && (
         <RazorpayModal

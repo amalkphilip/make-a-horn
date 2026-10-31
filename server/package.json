@@ -17,6 +17,7 @@
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.2",
     "nodemailer": "^10.3.1",
-    "razorpay": "^2.9.8"
+    "razorpay": "^2.9.8",
+    "stripe": "^23.1.0"
   }
 }

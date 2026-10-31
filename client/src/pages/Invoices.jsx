@@ -6,6 +6,7 @@ import { RecordPaymentModal } from '../components/RecordPaymentModal';
 import { ChaseReminderModal } from '../components/ChaseReminderModal';
 import { NotifyCustomerModal } from '../components/NotifyCustomerModal';
 import { RazorpayModal } from '../components/RazorpayModal';
+import { StripeModal } from '../components/StripeModal';
 import {
   FileText,
   Search,
@@ -37,6 +38,7 @@ export function Invoices({ onOpenBillingRun }) {
 
   const [paymentInvoice, setPaymentInvoice] = useState(null);
   const [razorpayInvoice, setRazorpayInvoice] = useState(null);
+  const [stripeInvoice, setStripeInvoice] = useState(null);
   const [chaseInvoice, setChaseInvoice] = useState(null);
   const [notifyInvoice, setNotifyInvoice] = useState(null);
   const [notifyType, setNotifyType] = useState('invoice_due');
@@ -319,6 +321,17 @@ export function Invoices({ onOpenBillingRun }) {
                           </button>
                         )}
 
+                        {/* Pay with Stripe */}
+                        {inv.status !== 'paid' && inv.status !== 'cancelled' && (
+                          <button
+                            onClick={() => setStripeInvoice(inv)}
+                            className="p-1.5 rounded hover:bg-indigo-50 text-[#635bff] hover:text-[#5349e0]"
+                            title="Pay online with Stripe (Zero PAN required)"
+                          >
+                            <CreditCard className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+
                         {/* Pay with Razorpay */}
                         {inv.status !== 'paid' && inv.status !== 'cancelled' && (
                           <button
@@ -392,6 +405,16 @@ export function Invoices({ onOpenBillingRun }) {
           onClose={() => setPaymentInvoice(null)}
           invoice={paymentInvoice}
           onPaymentRecorded={loadInvoices}
+        />
+      )}
+
+      {/* Stripe Online Payment Modal */}
+      {stripeInvoice && (
+        <StripeModal
+          isOpen={!!stripeInvoice}
+          onClose={() => setStripeInvoice(null)}
+          invoice={stripeInvoice}
+          onSuccess={loadInvoices}
         />
       )}
 

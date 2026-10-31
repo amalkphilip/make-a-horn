@@ -12,6 +12,12 @@ import {
   createRazorpayOrder,
   verifyAndSettlePayment
 } from '../services/razorpayService.js';
+import {
+  getStripeConfig,
+  saveStripeConfig,
+  createStripePaymentIntent,
+  confirmStripePayment
+} from '../services/stripeService.js';
 
 const router = express.Router();
 
@@ -298,6 +304,70 @@ router.post('/razorpay/settings', authenticate, requireRole(['admin']), (req, re
   const { keyId, keySecret } = req.body;
   const config = saveRazorpayConfig({ keyId, keySecret });
   res.json({ message: 'Razorpay configuration saved successfully!', config });
+});
+
+/**
+ * Stripe Payment Gateway Routes
+ */
+
+// 1. Get Stripe Config
+router.get('/stripe/config', authenticate, (req, res) => {
+  const config = getStripeConfig();
+  res.json({ config });
+});
+
+// 2. Create Stripe PaymentIntent for an Invoice
+router.post('/stripe/create-intent', authenticate, async (req, res) => {
+  try {
+    const { invoice_id, amount } = req.body;
+    if (!invoice_id) return res.status(400).json({ error: 'Invoice ID is required' });
+
+    let customer = null;
+    const inv = db.prepare('SELECT customer_id FROM invoices WHERE id = ?').get(invoice_id);
+    if (inv) {
+      customer = db.prepare('SELECT name, email, phone FROM customers WHERE id = ?').get(inv.customer_id);
+    }
+
+    const intentData = await createStripePaymentIntent({ invoiceId: invoice_id, amount, customer });
+    res.json(intentData);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// 3. Confirm Stripe Payment & Settle Invoice
+router.post('/stripe/confirm', authenticate, async (req, res) => {
+  try {
+    const {
+      payment_intent_id,
+      invoice_id,
+      amount,
+      payment_method
+    } = req.body;
+
+    if (!invoice_id || !amount) {
+      return res.status(400).json({ error: 'Invoice ID and amount are required.' });
+    }
+
+    const result = await confirmStripePayment({
+      paymentIntentId: payment_intent_id,
+      invoiceId: invoice_id,
+      amount,
+      paymentMethod: payment_method || 'Credit Card (Stripe)',
+      userName: req.user.name
+    });
+
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// 4. Update Stripe Gateway Credentials
+router.post('/stripe/settings', authenticate, requireRole(['admin']), (req, res) => {
+  const { publishableKey, secretKey } = req.body;
+  const config = saveStripeConfig({ publishableKey, secretKey });
+  res.json({ message: 'Stripe configuration saved successfully!', config });
 });
 
 export default router;

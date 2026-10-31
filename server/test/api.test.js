@@ -750,6 +750,50 @@ async function runTests() {
     });
     assert(rzpSettingsRes.status === 200 && rzpSettingsRes.body.config.isConfigured, 'PAY-RZP-4: Admin can configure custom Razorpay API credentials');
 
+    console.log('\n--- 12. Real-Time Stripe Payment Gateway Tests (Zero PAN) ---');
+    // Test 1: Retrieve Stripe config
+    const strpConfigRes = await request(testServer, {
+      method: 'GET',
+      path: '/api/payments/stripe/config',
+      headers: { Authorization: `Bearer ${adminToken}` }
+    });
+    assert(strpConfigRes.status === 200 && strpConfigRes.body.config.currency === 'USD', 'PAY-STRIPE-1: Public Stripe configuration retrieved');
+
+    // Test 2: Create Stripe PaymentIntent for an open invoice
+    const strpIntentRes = await request(testServer, {
+      method: 'POST',
+      path: '/api/payments/stripe/create-intent',
+      headers: { Authorization: `Bearer ${adminToken}` }
+    }, {
+      invoice_id: rzpTargetInvoiceId,
+      amount: 25
+    });
+    assert(strpIntentRes.status === 200 && strpIntentRes.body.paymentIntentId && strpIntentRes.body.amountInCents === 2500, 'PAY-STRIPE-2: Stripe PaymentIntent created with amount in cents');
+
+    // Test 3: Confirm Stripe payment and settle invoice
+    const strpConfirmRes = await request(testServer, {
+      method: 'POST',
+      path: '/api/payments/stripe/confirm',
+      headers: { Authorization: `Bearer ${adminToken}` }
+    }, {
+      payment_intent_id: strpIntentRes.body.paymentIntentId,
+      invoice_id: rzpTargetInvoiceId,
+      amount: 25,
+      payment_method: 'Credit Card (Stripe)'
+    });
+    assert(strpConfirmRes.status === 200 && strpConfirmRes.body.success, 'PAY-STRIPE-3: Stripe payment confirmed and settled against invoice');
+
+    // Test 4: Configure Stripe Settings as Admin
+    const strpSettingsRes = await request(testServer, {
+      method: 'POST',
+      path: '/api/payments/stripe/settings',
+      headers: { Authorization: `Bearer ${adminToken}` }
+    }, {
+      publishableKey: 'pk_test_NewStripeKey123',
+      secretKey: 'sk_test_SecretStripeKey456'
+    });
+    assert(strpSettingsRes.status === 200 && strpSettingsRes.body.config.isConfigured, 'PAY-STRIPE-4: Admin can configure custom Stripe API credentials');
+
     console.log('\n======================================================');
     console.log(`🏁 TEST RESULTS: ${passed} PASSED, ${failed} FAILED`);
     console.log('======================================================\n');

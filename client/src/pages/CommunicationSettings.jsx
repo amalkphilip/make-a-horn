@@ -24,6 +24,11 @@ export function CommunicationSettings() {
   const [razorpayKeySecret, setRazorpayKeySecret] = useState('');
   const [razorpayConfig, setRazorpayConfig] = useState({ isConfigured: false, mode: 'sandbox' });
 
+  // Stripe Gateway state (Zero PAN required)
+  const [stripePublishableKey, setStripePublishableKey] = useState('');
+  const [stripeSecretKey, setStripeSecretKey] = useState('');
+  const [stripeConfig, setStripeConfig] = useState({ isConfigured: false, mode: 'sandbox' });
+
   // Test email state
   const [testEmailTo, setTestEmailTo] = useState('');
   const [sendingTestEmail, setSendingTestEmail] = useState(false);
@@ -35,9 +40,10 @@ export function CommunicationSettings() {
   const loadSettings = async () => {
     try {
       setLoading(true);
-      const [res, rzpRes] = await Promise.all([
+      const [res, rzpRes, strpRes] = await Promise.all([
         authFetch('/api/notifications/settings/config'),
-        authFetch('/api/payments/razorpay/config')
+        authFetch('/api/payments/razorpay/config'),
+        authFetch('/api/payments/stripe/config')
       ]);
       if (res && res.settings) {
         setSettings(prev => ({ ...prev, ...res.settings }));
@@ -46,6 +52,12 @@ export function CommunicationSettings() {
         setRazorpayConfig(rzpRes.config);
         if (rzpRes.config.isConfigured && rzpRes.config.keyId) {
           setRazorpayKeyId(rzpRes.config.keyId);
+        }
+      }
+      if (strpRes && strpRes.config) {
+        setStripeConfig(strpRes.config);
+        if (strpRes.config.isConfigured && strpRes.config.publishableKey) {
+          setStripePublishableKey(strpRes.config.publishableKey);
         }
       }
     } catch (err) {
@@ -97,7 +109,7 @@ export function CommunicationSettings() {
     setErrorMsg('');
 
     try {
-      const [res, rzpRes] = await Promise.all([
+      const [res, rzpRes, strpRes] = await Promise.all([
         authFetch('/api/notifications/settings/config', {
           method: 'POST',
           body: JSON.stringify({ settings })
@@ -105,10 +117,17 @@ export function CommunicationSettings() {
         authFetch('/api/payments/razorpay/settings', {
           method: 'POST',
           body: JSON.stringify({ keyId: razorpayKeyId, keySecret: razorpayKeySecret })
+        }),
+        authFetch('/api/payments/stripe/settings', {
+          method: 'POST',
+          body: JSON.stringify({ publishableKey: stripePublishableKey, secretKey: stripeSecretKey })
         })
       ]);
       if (rzpRes && rzpRes.config) {
         setRazorpayConfig(rzpRes.config);
+      }
+      if (strpRes && strpRes.config) {
+        setStripeConfig(strpRes.config);
       }
       setSuccessMsg('Email & Payment Gateway settings saved successfully!');
       setTimeout(() => setSuccessMsg(''), 4000);
@@ -395,6 +414,71 @@ export function CommunicationSettings() {
           </div>
         </div>
 
+        {/* Stripe Gateway Card (Zero PAN Required) */}
+        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-6 space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[#635bff] text-white flex items-center justify-center font-bold text-lg shadow-xs">
+                S
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-base font-bold text-slate-900 tracking-tight">Stripe Payment Gateway</h2>
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                    stripeConfig.isConfigured ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-indigo-50 text-indigo-700 border border-indigo-200'
+                  }`}>
+                    {stripeConfig.isConfigured ? 'Live Test Key Active' : 'Zero-PAN Sandbox Ready'}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Accept global credit/debit cards with instant test mode. <strong>Requires NO PAN card, NO GST, and NO bank details.</strong>
+                </p>
+              </div>
+            </div>
+
+            <a
+              href="https://dashboard.stripe.com/test/apikeys"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 text-[11px] font-bold text-[#635bff] hover:underline"
+            >
+              <span>Get Free Stripe Keys</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
+          </div>
+
+          <div className="p-3 bg-indigo-50/70 border border-indigo-200 rounded-xl text-indigo-950 text-xs flex items-start gap-2.5">
+            <Info className="w-4 h-4 text-[#635bff] shrink-0 mt-0.5" />
+            <div className="leading-relaxed">
+              <strong>Zero KYC Setup:</strong> Stripe lets you sign up with just an email address to obtain test API keys (`pk_test_...` and `sk_test_...`). No PAN card or government ID is required to test payments. You can also use the interactive Stripe card simulator right now without entering any keys!
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Stripe Publishable Key</label>
+              <input
+                type="text"
+                value={stripePublishableKey}
+                onChange={(e) => setStripePublishableKey(e.target.value)}
+                placeholder="pk_test_xxxxxxxxxxxxxxxxxxxxxxxx"
+                className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-mono focus:outline-none focus:ring-2 focus:ring-[#635bff]"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Stripe Secret Key</label>
+              <input
+                type="password"
+                value={stripeSecretKey}
+                onChange={(e) => setStripeSecretKey(e.target.value)}
+                placeholder="sk_test_••••••••••••••••••••••••"
+                className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-mono focus:outline-none focus:ring-2 focus:ring-[#635bff]"
+              />
+            </div>
+          </div>
+        </div>
+
         {/* Razorpay Gateway Card */}
         <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-6 space-y-5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
@@ -406,7 +490,7 @@ export function CommunicationSettings() {
                 <div className="flex items-center gap-2">
                   <h2 className="text-base font-bold text-slate-900 tracking-tight">Razorpay Payment Gateway</h2>
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
-                    {razorpayConfig.isConfigured ? 'Live Test Key Active' : 'Sandbox Ready (Zero-Setup)'}
+                    {razorpayConfig.isConfigured ? 'Live Test Key Active' : 'Sandbox Ready'}
                   </span>
                 </div>
                 <p className="text-xs text-slate-500 mt-0.5">
@@ -429,7 +513,7 @@ export function CommunicationSettings() {
           <div className="p-3 bg-blue-50/70 border border-blue-200 rounded-xl text-blue-900 text-xs flex items-start gap-2.5">
             <Info className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
             <div className="leading-relaxed">
-              <strong>Built-in Interactive Sandbox:</strong> You don't need Razorpay keys to test! The interactive checkout modal automatically generates dynamic UPI QR codes, validates test cards, simulates real-time bank approvals, updates the invoice to Paid, and delivers the official payment receipt directly to the customer's email. When you get your official keys from Razorpay, paste them below anytime.
+              <strong>Built-in Interactive Sandbox:</strong> You don't need Razorpay keys or PAN verification to test! The interactive checkout modal automatically generates dynamic UPI QR codes, validates test cards, simulates real-time bank approvals, updates the invoice to Paid, and delivers the official payment receipt directly to the customer's email.
             </div>
           </div>
 
