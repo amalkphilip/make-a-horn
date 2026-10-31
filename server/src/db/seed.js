@@ -25,6 +25,7 @@ export function seedData(force = false) {
   const customer3Hash = bcrypt.hashSync('CustomerBakery2026!', salt);
 
   // Clear existing if fresh seed requested
+  db.exec('PRAGMA foreign_keys = OFF;');
   db.exec('DELETE FROM usage_charges');
   db.exec('DELETE FROM usage_alerts');
   db.exec('DELETE FROM usage_events');
@@ -32,6 +33,10 @@ export function seedData(force = false) {
   db.exec('DELETE FROM usage_periods');
   db.exec('DELETE FROM plan_features');
   db.exec('DELETE FROM feature_catalog');
+
+  try { db.exec('DELETE FROM support_ticket_messages'); } catch (_) {}
+  try { db.exec('DELETE FROM support_tickets'); } catch (_) {}
+  try { db.exec('DELETE FROM customer_notifications'); } catch (_) {}
 
   db.exec('DELETE FROM activity_logs');
   db.exec('DELETE FROM payments');
@@ -48,6 +53,7 @@ export function seedData(force = false) {
   db.exec('DELETE FROM products');
   db.exec('DELETE FROM customers');
   db.exec('DELETE FROM users');
+  db.exec('PRAGMA foreign_keys = ON;');
 
   // 1. Users (Admin, Staff, Customers)
   const insertUser = db.prepare(`
